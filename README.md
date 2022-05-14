@@ -92,4 +92,6 @@ Created following API's:
 
     ```$ python main.py```
 
-5. Navigate to [http://localhost:5000/get_all_continents]
+5. Execute .sql files in `fabio-tests/dbscripts`
+
+6. Navigate to [http://localhost:5000/get_all_continents]
