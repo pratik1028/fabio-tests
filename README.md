@@ -61,7 +61,7 @@ Created following API's:
 `` <br/>``Body:{"country_id":1, "population": 25, "area": 25}``
    5. ``DELETE /delete_country?country_id=1 HTTP/1.1
 ``
-3. City:
+3. **City**:
    1. ``GET /get_all_cities HTTP/1.1``
    2. ``GET /get_city?city_id=1 HTTP/1.1``
    3. ``POST /add_city HTTP/1.1>``<br/> ``Body: {"name": "mumbai", "population": 20, "area": 25, "country_id": 2, "roads": 50, "trees": 25}
@@ -71,5 +71,25 @@ Created following API's:
 ``
    5. ``DELETE /delete_continent?continent_id=3 HTTP/1.1
 ``
+      
+### Quick Start
 
+1. Clone Repo
+    ```
+    $ git clone https://github.com/pratik1028/fabio-tests.git 
+    $ cd fabio-tests-nisargatman
+    ```
 
+2. Activate a virtual environment
+
+    ```$ source env/bin/activate```
+
+3. Install the dependencies:
+
+    ```$ pip install -r requirements.txt```
+
+4. Run flask server:
+
+    ```$ python main.py```
+
+5. Navigate to [http://localhost:5000/get_all_continents]
