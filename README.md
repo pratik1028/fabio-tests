@@ -2,9 +2,9 @@
 This is mini wikipidea which provides features to Create, Read, 
 Update and Delete on geographical entities data.
 
-###Approach
+### Approach
 
-####Database Design
+#### Database Design
 Three tables created continents, countries and cities to hold the 
 geographical data.
 
