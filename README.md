@@ -77,7 +77,7 @@ Created following API's:
 1. Clone Repo
     ```
     $ git clone https://github.com/pratik1028/fabio-tests.git 
-    $ cd fabio-tests-nisargatman
+    $ cd fabio-tests
     ```
 
 2. Activate a virtual environment
