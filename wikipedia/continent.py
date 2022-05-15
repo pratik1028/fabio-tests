@@ -1,13 +1,16 @@
+from time import sleep
+from wikipedia import celery_app
 from dbconnect import session_scope
 from wikipedia.models import Continent
 from error_logger import error_logger
+from wikipedia.constants import DICT_TASK_NAME
 
 
 def get_all_continents_data() -> list:
     """
     Gets information related to all continents
 
-    :returns: returns dict of info related to all companies
+    :returns: returns dict of info related to all continents
     :rtype: dict
     """
     list_continents = []
@@ -48,12 +51,13 @@ def get_continent_data(
     }
 
 
+@celery_app.task
 def add_continent_data(
         dict_input: dict
 ) -> str:
     """
     Adds the continent to the database.
-    :param dict_input: Input paramters with continent's attribute
+    :param dict_input: Input parameters with continent's attribute
     :type dict_input: dict
 
     :return: returns Message with insert status
@@ -65,11 +69,15 @@ def add_continent_data(
         area=dict_input['area']
     )
     with session_scope() as session:
-        session.add(continent)
-        session.commit()
+        try:
+            session.add(continent)
+            session.commit()
+        except Exception as e:
+            return str(e)
     return f"Continent {dict_input['name']} inserted successfully."
 
 
+@celery_app.task
 def update_continent_data(
         continent_id: int,
         name=None,
@@ -90,6 +98,7 @@ def update_continent_data(
     :return: returns Message with update status
     :rtype: str
     """
+    sleep(60)
     with session_scope() as session:
         try:
             continent = session.query(Continent).filter(Continent.continent_id == continent_id).one_or_none()
@@ -109,11 +118,12 @@ def update_continent_data(
     return f"Update for continent with id {continent_id} successful."
 
 
+@celery_app.task
 def delete_continent_data(
         continent_id: int
 ) -> str:
     """
-    Deletes the continent from the database.
+    Deletes the continent as well as countries and child belonging in it from the database.
     :param continent_id: Continent's id
     :type continent_id: int
 
@@ -134,5 +144,10 @@ def delete_continent_data(
             session.commit()
         else:
             return f"Continent with id {continent_id} does not exist."
-    return f"Deleted countries {list_deleted_cities} and cities {list_deleted_countries}" \
+    return f"Deleted countries {list_deleted_countries} and cities {list_deleted_cities}" \
            f" with continent {continent_name}."
+
+
+DICT_TASK_NAME.update({'add_continent_data': add_continent_data})
+DICT_TASK_NAME.update({'update_continent_data': update_continent_data})
+DICT_TASK_NAME.update({'delete_continent_data': delete_continent_data})

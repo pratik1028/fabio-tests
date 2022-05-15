@@ -4,3 +4,6 @@ INTERNAL_SERVER = 500
 
 POPULATION_EXCEED_ERROR = "POPULATION ERROR"
 AREA_EXCEED_ERROR = "AREA ERROR"
+
+TASK_MESSAGE = "Client can continue and check the status as /tasks?task_id={0}&task_name={1}"
+DICT_TASK_NAME = {}

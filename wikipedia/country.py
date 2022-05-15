@@ -1,4 +1,7 @@
-from wikipedia.constants import POPULATION_EXCEED_ERROR, AREA_EXCEED_ERROR
+from time import sleep
+
+from wikipedia import celery_app
+from wikipedia.constants import POPULATION_EXCEED_ERROR, AREA_EXCEED_ERROR, DICT_TASK_NAME
 from dbconnect import session_scope
 from wikipedia.models import Country, Continent
 from error_logger import error_logger
@@ -55,6 +58,7 @@ def get_country_data(
         }
 
 
+@celery_app.task
 def add_country_data(
         dict_input: dict
 ) -> str:
@@ -84,6 +88,7 @@ def add_country_data(
             session.commit()
         except Exception as e:
             error_mss = str(e)
+            session.rollback()
             if POPULATION_EXCEED_ERROR in error_mss:
                 return f"Insert for country {dict_input['name']} with {dict_input['population']} population failed as" \
                        f" it exceeds the population of the continent it belongs to."
@@ -91,13 +96,14 @@ def add_country_data(
                 return f"Insert for country {dict_input['name']} with {dict_input['area']} area failed as it exceeds" \
                        f" the area of the continent it belongs to."
             error_logger.error(str(e))
-            session.rollback()
             return f"Insert for country {dict_input['name']} failed."
     return f"Country {dict_input['name']} inserted successfully."
 
 
+@celery_app.task
 def update_country_data(
         country_id: int,
+        continent_id: int,
         name=None,
         population=None,
         area=None,
@@ -108,6 +114,8 @@ def update_country_data(
     Updates the field's for the specified country id.
     :param country_id: Country's id
     :type country_id: int
+    :param country_id: Continent id, defaults to None
+    :type country_id: int, optional
     :param name: Name of the country, defaults to None.
     :type name: str, optional
     :param population: Population of that country, defaults to None.
@@ -122,6 +130,7 @@ def update_country_data(
     :return: returns Message with update status
     :rtype: str
     """
+    sleep(60)
     with session_scope() as session:
         try:
             country = session.query(Country).filter(Country.country_id == country_id).one_or_none()
@@ -137,9 +146,12 @@ def update_country_data(
                 country.hospitals = hospitals
             if national_parks:
                 country.national_parks = national_parks
+            if continent_id:
+                country.continent_id = continent_id
             session.commit()
         except Exception as e:
             error_mss = str(e)
+            session.rollback()
             if POPULATION_EXCEED_ERROR in error_mss:
                 return f"Update for country id {country_id} with {population} population failed as it exceeds the" \
                        f" population of the continent it belongs to."
@@ -147,11 +159,11 @@ def update_country_data(
                 return f"Update for country id {country_id} with {area} area failed as it exceeds the area of" \
                        f" the continent it belongs to."
             error_logger.error(str(e))
-            session.rollback()
             return f"Update for country with id {country_id} failed."
     return f"Update for country with id {country_id} successful."
 
 
+@celery_app.task
 def delete_country_data(
     country_id: int
 ) -> str:
@@ -175,3 +187,8 @@ def delete_country_data(
         else:
             return f"Country with id {country_id} does not exist."
     return f"Deleted cities {list_deleted_cities} with country {country_name}."
+
+
+DICT_TASK_NAME.update({'add_country_data': add_country_data})
+DICT_TASK_NAME.update({'update_country_data': update_country_data})
+DICT_TASK_NAME.update({'delete_country_data': delete_country_data})

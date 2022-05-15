@@ -1,4 +1,7 @@
-from wikipedia.constants import POPULATION_EXCEED_ERROR, AREA_EXCEED_ERROR
+from time import sleep
+
+from wikipedia import celery_app
+from wikipedia.constants import POPULATION_EXCEED_ERROR, AREA_EXCEED_ERROR, DICT_TASK_NAME
 from dbconnect import session_scope
 from wikipedia.models import City, Country
 from error_logger import error_logger
@@ -55,6 +58,7 @@ def get_city_data(
         }
 
 
+@celery_app.task
 def add_city_data(
         dict_input: dict
 ) -> str:
@@ -83,6 +87,7 @@ def add_city_data(
             session.commit()
         except Exception as e:
             error_mss = str(e)
+            session.rollback()
             if POPULATION_EXCEED_ERROR in error_mss:
                 return f"Insert for city {dict_input['name']} with {dict_input['population']} population failed as" \
                        f" it exceeds the population of the country it belongs to."
@@ -90,13 +95,14 @@ def add_city_data(
                 return f"Insert for city {dict_input['name']} with {dict_input['area']} area failed as it exceeds" \
                        f" the area of the country it belongs to."
             error_logger.error(str(e))
-            session.rollback()
             return f"Insert for city {dict_input['name']} failed."
     return f"City {dict_input['name']} inserted successfully."
 
 
+@celery_app.task
 def update_city_data(
         city_id: int,
+        country_id=None,
         name=None,
         population=None,
         area=None,
@@ -107,6 +113,8 @@ def update_city_data(
     Updates the field's for the specified city id.
     :param city_id: City's id
     :type city_id: int
+    :param city_id: Country id defaults to None.
+    :type city_id: int, optional
     :param name: Name of the city, defaults to None.
     :type name: str, optional
     :param population: Population of that city, defaults to None.
@@ -121,6 +129,7 @@ def update_city_data(
     :return: returns Message with update status
     :rtype: str
     """
+    sleep(60)
     with session_scope() as session:
         try:
             city = session.query(City).filter(City.city_id == city_id).one_or_none()
@@ -136,9 +145,12 @@ def update_city_data(
                 city.roads = roads
             if trees:
                 city.national_parks = trees
+            if country_id:
+                city.country_id = country_id
             session.commit()
         except Exception as e:
             error_mss = str(e)
+            session.rollback()
             if POPULATION_EXCEED_ERROR in error_mss:
                 return f"Update for city id {city_id} with {population} population failed as it exceeds the" \
                        f" population of the country it belongs to."
@@ -151,6 +163,7 @@ def update_city_data(
     return f"Update for city with id {city_id} successful."
 
 
+@celery_app.task
 def delete_city_data(
     city_id: int,
 ) -> str:
@@ -171,3 +184,8 @@ def delete_city_data(
         else:
             return f"City with id {city_id} does not exist."
     return f"Deleted city {city_name}."
+
+
+DICT_TASK_NAME.update({'add_city_data': add_city_data})
+DICT_TASK_NAME.update({'update_city_data': update_city_data})
+DICT_TASK_NAME.update({'delete_city_data': delete_city_data})

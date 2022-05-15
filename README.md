@@ -72,6 +72,46 @@ Created following API's:
    5. ``DELETE /delete_continent?continent_id=3 HTTP/1.1
 ``
       
+### Message Broker Implementation
+Implemented **Celery** with **rabbitmq** as message broker with **sqlite** as result backend 
+for celery to store task results and state, to execute a task's
+asynchronously for the case where user can call the insert, update, delete
+api's and get back to doing their work. </br>
+The functions in these api's are made as celery task where the user will be 
+returned a task_id as response from api, and the process of insert/update/delete will continue in background.</br> 
+This task_id can be used to check the status of 
+their task.<br /></br>
+Created an endpoint **/tasks** which takes task_id and task_name to which
+that task_id belongs as arguments and returns the status of the task.
+</br>**eg:** User calls `/add_continent` api, </br>
+   ```
+   request:
+   http://127.0.0.1:5000/add_continent
+   body: {"name": "africa", "population": 50, "area": 50}
+   resopnse:
+   {
+    "data": "596546b1-9079-4f80-b574-55a14a44ec23",
+    "message": "Client can continue and check the status as /tasks?task_id=596546b1-9079-4f80-b574-55a14a44ec23&task_name=add_continent_data",
+    "status": "success"
+}
+```
+Now user can call ``/tasks`` with the task_id and task_name to get the 
+status of the task whenever he/she wants.
+  ```
+   request:
+   http://127.0.0.1:5000/tasks?task_id=596546b1-9079-4f80-b574-55a14a44ec23
+   &task_name=add_continent_data
+   resopnse:
+   {
+   data: {
+      task_id: "596546b1-9079-4f80-b574-55a14a44ec23",
+      task_result: "Continent finally inserted successfully.",
+      task_status: "SUCCESS"
+      },
+   status: "success"
+   }
+```
+
 ### Quick Start
 
 1. Clone Repo
@@ -88,10 +128,13 @@ Created following API's:
 
     ```$ pip install -r requirements.txt```
 
-4. Run flask server:
+4. Execute .sql files in `fabio-tests/dbscripts`
+
+5. Run flask server:
 
     ```$ python main.py```
 
-5. Execute .sql files in `fabio-tests/dbscripts`
-
-6. Navigate to [http://localhost:5000/get_all_continents]
+6. Run celery broker:
+   
+   ```$ celery -A wikipedia worker -Q WIKI_QUEUE```
+7. Navigate to [http://localhost:5000/get_all_continents]
