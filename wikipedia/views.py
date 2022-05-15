@@ -1,13 +1,42 @@
+from celery.result import AsyncResult
 from flask import request
 from error_logger import error_logger
 from wikipedia import flask_app
-from wikipedia.constants import BAD_REQUEST, INTERNAL_SERVER
 from wikipedia.city import get_all_cities_data, get_city_data, add_city_data, update_city_data, delete_city_data
-from wikipedia.continent import get_all_continents_data, delete_continent_data, get_continent_data, add_continent_data, \
-    update_continent_data
+from wikipedia.constants import BAD_REQUEST, INTERNAL_SERVER, TASK_MESSAGE, DICT_TASK_NAME
+from wikipedia.continent import get_all_continents_data, delete_continent_data, get_continent_data, \
+    add_continent_data, update_continent_data
 from wikipedia.country import get_all_countries_data, get_country_data, add_country_data, update_country_data, \
     delete_country_data
 from wikipedia.utils import http_json_response
+
+
+@flask_app.route("/tasks", methods=['GET'])
+def get_status():
+    """
+    Gets the status of async task running.
+    :return:
+    """
+    task_id = request.args.get('task_id')
+    task_name = request.args.get('task_name')
+    if not task_id or not task_name:
+        return http_json_response(
+            message="Mandatory parameter missing.",
+            status_code=BAD_REQUEST,
+            error=True
+        )
+    if task_name not in DICT_TASK_NAME:
+        return http_json_response(
+            message=f"Task {task_name} is not valid."
+        )
+    task_result = DICT_TASK_NAME[task_name].AsyncResult(task_id)
+    result = {
+        "task_id": task_id,
+        "task_status": task_result.status,
+        "task_result": task_result.result
+    }
+    return http_json_response(result)
+
 
 """
     CONTINENT API's
@@ -33,7 +62,7 @@ def get_all_continents():
 @flask_app.route('/get_continent', methods=['GET'])
 def get_continent():
     """
-    API to get details for given continent.
+    API to get details for given continent id.
     """
     try:
         continent_id = request.args.get('continent_id')
@@ -46,7 +75,7 @@ def get_continent():
         continent = get_continent_data(int(continent_id))
         if not continent:
             return http_json_response(
-                message=f"Conitnent with id {continent_id} does not exist."
+                message=f"Continent with id {continent_id} does not exist."
             )
         return http_json_response(continent)
     except Exception as e:
@@ -72,8 +101,14 @@ def add_continent():
                 status_code=BAD_REQUEST,
                 error=True
             )
-        insert_mess = add_continent_data(input_params)
-        return http_json_response(message=insert_mess)
+        task = add_continent_data.apply_async(
+            args=[input_params],
+            queue='WIKI_QUEUE'
+        )
+        message = TASK_MESSAGE.format(task.id, 'add_continent_data')
+        return http_json_response(data=task.id, message=message)
+        # mess = add_continent_data(input_params)
+        # return http_json_response(message=mess)
     except Exception as e:
         error_logger.error(str(e))
         return http_json_response(
@@ -105,13 +140,12 @@ def update_continent():
                 status_code=BAD_REQUEST,
                 error=True
             )
-        update_mss = update_continent_data(
-            continent_id=continent_id,
-            name=name,
-            population=population,
-            area=area,
+        task = update_continent_data.apply_async(
+            args=[continent_id, name, population, area],
+            queue='WIKI_QUEUE'
         )
-        return http_json_response(message=update_mss)
+        message = TASK_MESSAGE.format(task.id, 'update_continent_data')
+        return http_json_response(data=task.id, message=message)
     except Exception as e:
         error_logger.error(str(e))
         return http_json_response(
@@ -133,8 +167,12 @@ def delete_continent():
                 status_code=BAD_REQUEST,
                 error=True
             )
-        delete_mess = delete_continent_data(int(continent_id))
-        return http_json_response(message=delete_mess)
+        task = delete_continent_data.apply_async(
+            args=[int(continent_id)],
+            queue='WIKI_QUEUE'
+        )
+        message = TASK_MESSAGE.format(task.id, 'delete_continent_data')
+        return http_json_response(data=task.id, message=message)
     except Exception as e:
         error_logger.error(str(e))
         return http_json_response(
@@ -212,8 +250,12 @@ def add_country():
                 status_code=BAD_REQUEST,
                 error=True
             )
-        insert_mess = add_country_data(input_params)
-        return http_json_response(message=insert_mess)
+        task = add_country_data.apply_async(
+            args=[input_params],
+            queue='WIKI_QUEUE'
+        )
+        message = TASK_MESSAGE.format(task.id, 'add_country_data')
+        return http_json_response(data=task.id, message=message)
     except Exception as e:
         error_logger.error(str(e))
         return http_json_response(
@@ -230,6 +272,7 @@ def update_country():
     try:
         input_params = request.get_json()
         country_id = input_params.get('country_id')
+        continent_id = input_params.get('continent_id')
         name = input_params.get('name')
         area = input_params.get('area')
         national_parks = input_params.get('national_parks')
@@ -241,21 +284,18 @@ def update_country():
                 status_code=BAD_REQUEST,
                 error=True
             )
-        if not area and not population and not name:
+        if not area and not population and not name and not continent_id:
             return http_json_response(
                 message="Provide atleast one field to update.",
                 status_code=BAD_REQUEST,
                 error=True
             )
-        update_mss = update_country_data(
-            country_id=country_id,
-            name=name,
-            population=population,
-            area=area,
-            hospitals=hospitals,
-            national_parks=national_parks
+        task = update_country_data.apply_async(
+            args=[country_id, continent_id, name, population, area, hospitals, national_parks],
+            queue='WIKI_QUEUE'
         )
-        return http_json_response(message=update_mss)
+        message = TASK_MESSAGE.format(task.id, 'update_country_data')
+        return http_json_response(data=task.id, message=message)
     except Exception as e:
         error_logger.error(str(e))
         return http_json_response(
@@ -277,8 +317,12 @@ def delete_country():
                 status_code=BAD_REQUEST,
                 error=True
             )
-        delete_mess = delete_country_data(int(country_id))
-        return http_json_response(message=delete_mess)
+        task = delete_country_data.apply_async(
+            args=[int(country_id)],
+            queue='WIKI_QUEUE'
+        )
+        message = TASK_MESSAGE.format(task.id, 'delete_country_data')
+        return http_json_response(data=task.id, message=message)
     except Exception as e:
         error_logger.error(str(e))
         return http_json_response(
@@ -356,8 +400,12 @@ def add_city():
                 status_code=BAD_REQUEST,
                 error=True
             )
-        insert_mess = add_city_data(input_params)
-        return http_json_response(message=insert_mess)
+        task = add_city_data.apply_async(
+            args=[input_params],
+            queue='WIKI_QUEUE'
+        )
+        message = TASK_MESSAGE.format(task.id, 'add_city_data')
+        return http_json_response(data=task.id, message=message)
     except Exception as e:
         error_logger.error(str(e))
         return http_json_response(
@@ -374,6 +422,7 @@ def update_city():
     try:
         input_params = request.get_json()
         city_id = input_params.get('city_id')
+        country_id = input_params.get('country_id')
         name = input_params.get('name')
         area = input_params.get('area')
         roads = input_params.get('roads')
@@ -385,21 +434,18 @@ def update_city():
                 status_code=BAD_REQUEST,
                 error=True
             )
-        if not area and not population and not name:
+        if not area and not population and not name and not country_id:
             return http_json_response(
                 message="Provide atleast one field to update.",
                 status_code=BAD_REQUEST,
                 error=True
             )
-        update_mss = update_city_data(
-            city_id=city_id,
-            name=name,
-            population=population,
-            area=area,
-            roads=roads,
-            trees=trees
+        task = update_city_data.apply_async(
+            args=[city_id, country_id, name, population, area, roads, trees],
+            queue='WIKI_QUEUE'
         )
-        return http_json_response(message=update_mss)
+        message = TASK_MESSAGE.format(task.id, 'update_city_data')
+        return http_json_response(data=task.id, message=message)
     except Exception as e:
         error_logger.error(str(e))
         return http_json_response(
@@ -421,8 +467,12 @@ def delete_city():
                 status_code=BAD_REQUEST,
                 error=True
             )
-        delete_mess = delete_city_data(int(city_id))
-        return http_json_response(message=delete_mess)
+        task = delete_city_data.apply_async(
+            args=[int(city_id)],
+            queue='WIKI_QUEUE'
+        )
+        message = TASK_MESSAGE.format(task.id, 'delete_city_data')
+        return http_json_response(data=task.id, message=message)
     except Exception as e:
         error_logger.error(str(e))
         return http_json_response(
