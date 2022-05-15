@@ -83,7 +83,7 @@ This task_id can be used to check the status of
 their task.<br /></br>
 Created an endpoint **/tasks** which takes task_id and task_name to which
 that task_id belongs as arguments and returns the status of the task.
-</br>**eg:** User calls `/add_continent` api, </br>
+</br>eg: User calls `/add_continent` api, </br>
    ```
    request:
    http://127.0.0.1:5000/add_continent
@@ -138,3 +138,22 @@ status of the task whenever he/she wants.
    
    ```$ celery -A wikipedia worker -Q WIKI_QUEUE```
 7. Navigate to [http://localhost:5000/get_all_continents]
+
+
+### Production Deployment
+For production deployment will be using **Docker** for containerization
+approach.</br>
+Define 3 containers in docker-compose.yml:
+1. **web**: For flask application
+2. **rabbitmq3**: For rabbitmq server
+3. **worker**: For celery which will depend on web and rabbitmq
+
+For celery backend use a **mysql/mongodb** instead of sqlite db.</br>
+Also can add **flower** container in .yml file for monitoring and administrating Celery clusters.</br>
+Use **.env** file for all server url's, password, username instead of directly using in the repository.</br>
+Instead of connecting to database directly will set up a **proxysql** server a **master-slave** architecture
+for the database. 
+</br> Command to run the docker file:</br>
+```
+$ docker-compose -f docker-compose.yml up --build 
+```
