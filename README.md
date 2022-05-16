@@ -91,7 +91,7 @@ that task_id belongs as arguments and returns the status of the task.
    resopnse:
    {
     "data": "596546b1-9079-4f80-b574-55a14a44ec23",
-    "message": "Client can continue and check the status as /tasks?task_id=596546b1-9079-4f80-b574-55a14a44ec23&task_name=add_continent_data",
+    "message": "Client can continue and check the status at /tasks?task_id=596546b1-9079-4f80-b574-55a14a44ec23&task_name=add_continent_data",
     "status": "success"
 }
 ```
@@ -105,7 +105,7 @@ status of the task whenever he/she wants.
    {
    data: {
       task_id: "596546b1-9079-4f80-b574-55a14a44ec23",
-      task_result: "Continent finally inserted successfully.",
+      task_result: "Continent africa inserted successfully.",
       task_status: "SUCCESS"
       },
    status: "success"
