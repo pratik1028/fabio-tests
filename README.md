@@ -21,22 +21,22 @@ Refer: ``fabio-tests/dbscripts/tables.sql``
     
 Added following validation logic using **Trigger** and **Procedure**:
 
-1. Population/area of newly **inserted** country cannot be greater that population/area
+1. Population/area of newly **inserted** country cannot be greater than population/area
 of continent it belongs to.<br/>
-2. Population/area of newly **inserted** city cannot be greater that population/area
+2. Population/area of newly **inserted** city cannot be greater than population/area
 of country.<br/>
-3. Population/area of **updated** country cannot be greater that population/area
+3. Population/area of **updated** country cannot be greater than population/area
 of continent it belongs to.<br/>
-4. Population/area of **upaded** city cannot be greater that population/area
+4. Population/area of **upaded** city cannot be greater than population/area
 of country.<br/>
    
 **Trigger** on country table:<br/>`before_country_insert` and `before_country_update`
-which called **procedures** `check_total_population_continent` and `check_total_area_continent` to get if new population/area
-is less than continent.
+which called **procedures** `check_total_population_continent` and `check_total_area_continent` to get if the sum with new population/area
+is less than population/area of the continent. If the new sum is more raise **SIGNAL SQLSTATE '45000'.**
 
 **Trigger** on city table:<br/>`before_city_insert` and `before_city_update`
-which called **procedures** `check_total_population_country` and `check_total_area_country` to get if new population/area
-is less than country.<br/>
+which called **procedures** `check_total_population_country` and `check_total_area_country` to get if the sum with new population/area
+is less than popultion/area of the country.If the new sum is more raise **SIGNAL SQLSTATE '45000'.**<br/>
 
 Refer: ``fabio-tests/dbscripts/trigger_and_procedure.sql``
 <br/><br/>
@@ -151,7 +151,7 @@ Define 3 containers in docker-compose.yml:
 For celery backend use a **mysql/mongodb** instead of sqlite db.</br>
 Also can add **flower** container in .yml file for monitoring and administrating Celery clusters.</br>
 Use **.env** file for all server url's, password, username instead of directly using in the repository.</br>
-Instead of connecting to database directly will set up a **proxysql** server a **master-slave** architecture
+Instead of connecting to database directly will set up a **proxysql** server and a **master-slave** architecture
 for the database. 
 </br> Command to run the docker file:</br>
 ```
